@@ -44,43 +44,60 @@ dim(train_edit)
 dim(test_edit)
 ```
 
+# Algorithm
 __Partition training data set to allow cross-validation__
 The training dataset has 53 variables and 19,622 observations.
 On the other hand, the test dataset has 53 variables and 20 observations.
-To perform cross-validation, we use a general thumb rule of having 75% training  dataset (`train_partition`) and 25% testing dataset (`test_partition`).
+To perform cross-validation, we use a general thumb rule of having 75% training dataset (`train_partition`) and 25% testing dataset (`test_partition`).
 
 ```{r partition, echo=TRUE}
 partition <- createDataPartition(train_edit$classe, p = 0.75, list = FALSE)
 train_partition <- train_edit[partition,]
-test_partition <- test_edit[-partition,]
+test_partition <- train_edit[-partition,]
 dim(train_partition)
 dim(test_partition)
 
 ```
 
 __Using Random Forest to Predict__
+
+I have decided to use the __Random Forest__ algorithm as it selects the most important variables automatically.
+
 ```{r randomforest, echo=TRUE}
 model <- train(classe ~ ., data = train_partition, method = "rf")
 prediction <- predict(model, test_partition)
 confusionMatrix(prediction, test_partition$classe)
 ```
 
-```{r gbm, echo=TRUE}
-model2 <- train(classe ~ ., data = train_partition, method = "gbm")
-prediction2 <- predict(model2, test_partition)
-confusionMatrix(prediction2, test_partition$classe)
-```
-
-```{r lda, echo=TRUE}
-model3 <- train(classe ~ ., data = train_partition, method = "lda")
-prediction3 <- predict(model3, test_partition)
-confusionMatrix(prediction3, test_partition$classe)
+__Calculating out of sample error and accuracy of prediction__
+```{r outofsampleerror, echo=TRUE}
+accuracy <- sum(prediction == test_partition$classe)/length(prediction)
+outofSampleError <- 1 - accuracy
+val <- outofSampleError * 100
+acc <- accuracy *100
 ```
 
 # Results
-After analysing the three different models, the Random Forest works the best with:
+After analysing the results above using Random Forest algorithm:
 
-* Confusion matrix achieved xx% accuracy; and
-* Out of Sample Error achieved xx% accuracy
+```{r print, echo=FALSE}
+paste0("Accuracy: ", round(acc, digits = 2), "%")
+paste0("Out of sample error estimation: ", round(val, digits = 2), "%")
+```
 
 This means that with the model's accuracy that exceeds 99% on the cross-validation data, few or even none of the test samples should be classified in a wrong manner.
+
+# Submission
+```{r submission, echo=TRUE}
+answer <- predict(model, testdata)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(answer)
+```
