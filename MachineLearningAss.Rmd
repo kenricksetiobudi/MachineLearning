@@ -1,0 +1,86 @@
+---
+title: "Machine Learning Assignment"
+author: "Kenrick Setiobudi"
+date: "27 December 2015"
+output: html_document
+---
+
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+# Load the relevant packages
+First, we load the relevant packages that we will use in the analysis.
+
+```{r packload, echo =TRUE}
+library(ggplot2) 
+library(caret)
+library(randomForest)
+```
+
+# Prepare the data for analysis
+Set the working directory whilst loading the CSV files into R:
+```{r dataload, echo=TRUE}
+setwd("~/Documents/Dropbox/GitHub/MachineLearning")
+set.seed(5000)
+traindata <- read.csv("pml-training.csv", na.strings = c("NA",""), header = T)
+dim(traindata)
+testdata <- read.csv("pml-testing.csv", na.strings = c("NA",""), header = T)
+dim(testdata)
+```
+
+We remove NAs from the training dataset:
+```{r NAremove, echo=TRUE}
+train_edit <- traindata[, colSums(is.na(traindata))==0]
+test_edit <- testdata[, colSums(is.na(testdata))==0]
+dim(train_edit)
+dim(test_edit)
+```
+
+We exclude the first 7 columns since they are not useable in the test.
+```{r colremove, echo=TRUE}
+train_edit <- train_edit[,-(1:7)]
+test_edit <- test_edit[,-(1:7)]
+dim(train_edit)
+dim(test_edit)
+```
+
+__Partition training data set to allow cross-validation__
+The training dataset has 53 variables and 19,622 observations.
+On the other hand, the test dataset has 53 variables and 20 observations.
+To perform cross-validation, we use a general thumb rule of having 75% training  dataset (`train_partition`) and 25% testing dataset (`test_partition`).
+
+```{r partition, echo=TRUE}
+partition <- createDataPartition(train_edit$classe, p = 0.75, list = FALSE)
+train_partition <- train_edit[partition,]
+test_partition <- test_edit[-partition,]
+dim(train_partition)
+dim(test_partition)
+
+```
+
+__Using Random Forest to Predict__
+```{r randomforest, echo=TRUE}
+model <- train(classe ~ ., data = train_partition, method = "rf")
+prediction <- predict(model, test_partition)
+confusionMatrix(prediction, test_partition$classe)
+```
+
+```{r gbm, echo=TRUE}
+model2 <- train(classe ~ ., data = train_partition, method = "gbm")
+prediction2 <- predict(model2, test_partition)
+confusionMatrix(prediction2, test_partition$classe)
+```
+
+```{r lda, echo=TRUE}
+model3 <- train(classe ~ ., data = train_partition, method = "lda")
+prediction3 <- predict(model3, test_partition)
+confusionMatrix(prediction3, test_partition$classe)
+```
+
+# Results
+After analysing the three different models, the Random Forest works the best with:
+
+* Confusion matrix achieved xx% accuracy; and
+* Out of Sample Error achieved xx% accuracy
+
+This means that with the model's accuracy that exceeds 99% on the cross-validation data, few or even none of the test samples should be classified in a wrong manner.
